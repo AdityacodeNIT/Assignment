@@ -1,14 +1,15 @@
 # Full Stack Web Application Assignment
 
-This repository contains the solution for the Full Stack Web Development Assessment. It features a React frontend and a Node.js/Express backend, with JWT authentication and a dashboard interface.
+Hello Sir this repository contains the solution for the Full Stack Web Development Assessment. It features a React frontend and a Node.js/Express backend, with JWT authentication and a dashboard interface.
 
 ## Tech Stack
 - **Frontend**: React.js (Vite), Tailwind CSS, React Router DOM, Axios
 - **Backend**: Node.js, Express.js, MongoDB (Mongoose), JSON Web Tokens (JWT), bcryptjs
 
 ## Prerequisites
-- Node.js installed
+- Node.js must be  installed
 - A running MongoDB deployment (either local or MongoDB Atlas)
+
 
 ## Setup & Running the Application
 
@@ -25,7 +26,7 @@ This repository contains the solution for the Full Stack Web Development Assessm
    ```env
    MONGO_URI=mongodb+srv://<username>:<password>@cluster.mongodb.net/assignment
    JWT_SECRET=super_secret_jwt_key_for_assignment
-   PORT=5000
+   PORT=5000 -- or as you like 
    ```
 4. **Seed the database** (Creates the test user `test@example.com` / `password123`):
    ```bash

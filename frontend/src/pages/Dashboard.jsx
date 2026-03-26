@@ -9,24 +9,27 @@ import { ThemeContext } from '../context/ThemeContext';
 const Dashboard = () => {
   const { user, logout } = useContext(AuthContext);
   const { theme, toggleTheme } = useContext(ThemeContext);
+  
+  // hold all dash data here
   const [data, setData] = useState({ leads: [], tasks: [], users: [] });
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
   
-  // Task specific state
+  // task state
   const [newTaskTitle, setNewTaskTitle] = useState('');
   const [isAddingTask, setIsAddingTask] = useState(false);
 
-  // Lead specific state
+  // lead state
   const [newLeadName, setNewLeadName] = useState('');
   const [newLeadCompany, setNewLeadCompany] = useState('');
   const [isAddingLead, setIsAddingLead] = useState(false);
 
-  // Team specific state
+  // team state
   const [newTeamName, setNewTeamName] = useState('');
   const [newTeamRole, setNewTeamRole] = useState('');
   const [isAddingTeam, setIsAddingTeam] = useState(false);
 
+  // fetch everything on mount
   useEffect(() => {
     const fetchDashboardData = async () => {
       try {
@@ -34,10 +37,12 @@ const Dashboard = () => {
         const config = {
           headers: { Authorization: `Bearer ${userInfo.token}` },
         };
+        
         const response = await axios.get('/api/dashboard/data', config);
         setData(response.data);
       } catch (err) {
         setError('Failed to fetch dashboard data. Please try again later.');
+        // bad token probably, force log them out
         if (err.response && err.response.status === 401) {
             logout();
         }
@@ -50,29 +55,40 @@ const Dashboard = () => {
   }, [logout]);
 
 
-  /* --- TASKS CRUD --- */
+  // --- tasks ---
+  
   const handleAddTask = async (e) => {
     e.preventDefault();
     if(!newTaskTitle.trim()) return;
+    
     setIsAddingTask(true);
     try {
       const userInfo = JSON.parse(localStorage.getItem('userInfo'));
       const config = { headers: { Authorization: `Bearer ${userInfo.token}` } };
+      
       const response = await axios.post('/api/tasks', { title: newTaskTitle }, config);
+      
+      // prepend new task
       setData({ ...data, tasks: [response.data, ...data.tasks] });
       setNewTaskTitle('');
-    } catch (err) { console.error(err); } finally { setIsAddingTask(false); }
+    } catch (err) { 
+        console.error(err); 
+    } finally { 
+        setIsAddingTask(false);
+    }
   };
 
   const handleToggleTask = async (task) => {
     if(!task._id) {
-      // Toggle local state for static items since they aren't in the database
+      // just toggle ui for dummy items
       setData({ ...data, tasks: data.tasks.map(t => t.id === task.id ? { ...t, completed: !t.completed } : t) });
       return;
     }
+    
     try {
       const userInfo = JSON.parse(localStorage.getItem('userInfo'));
       const config = { headers: { Authorization: `Bearer ${userInfo.token}` } };
+      
       const response = await axios.put(`/api/tasks/${task._id}`, { completed: !task.completed }, config);
       setData({ ...data, tasks: data.tasks.map(t => t._id === task._id ? response.data : t) });
     } catch (err) { console.error(err); }
@@ -82,21 +98,26 @@ const Dashboard = () => {
     try {
       const userInfo = JSON.parse(localStorage.getItem('userInfo'));
       const config = { headers: { Authorization: `Bearer ${userInfo.token}` } };
+      
       await axios.delete(`/api/tasks/${taskId}`, config);
       setData({ ...data, tasks: data.tasks.filter(t => t._id !== taskId) });
     } catch (err) { console.error(err); }
   };
 
 
-  /* --- LEADS CRUD --- */
+  // --- leads ---
+  
   const handleAddLead = async (e) => {
     e.preventDefault();
     if(!newLeadName.trim() || !newLeadCompany.trim()) return;
+    
     setIsAddingLead(true);
     try {
       const userInfo = JSON.parse(localStorage.getItem('userInfo'));
       const config = { headers: { Authorization: `Bearer ${userInfo.token}` } };
+      
       const response = await axios.post('/api/leads', { name: newLeadName, company: newLeadCompany }, config);
+      
       setData({ ...data, leads: [response.data, ...data.leads] });
       setNewLeadName('');
       setNewLeadCompany('');
@@ -105,10 +126,10 @@ const Dashboard = () => {
 
   const handleCycleLeadStatus = async (lead) => {
     const statuses = ['New', 'Contacted', 'Qualified'];
+    // cycle through the statuses array
     const nextStatus = statuses[(statuses.indexOf(lead.status) + 1) % statuses.length];
     
     if(!lead._id) {
-       // Toggle local state for static items
        setData({ ...data, leads: data.leads.map(l => l.id === lead.id ? { ...l, status: nextStatus } : l) });
        return;
     }
@@ -116,6 +137,7 @@ const Dashboard = () => {
     try {
       const userInfo = JSON.parse(localStorage.getItem('userInfo'));
       const config = { headers: { Authorization: `Bearer ${userInfo.token}` } };
+      
       const response = await axios.put(`/api/leads/${lead._id}`, { status: nextStatus }, config);
       setData({ ...data, leads: data.leads.map(l => l._id === lead._id ? response.data : l) });
     } catch (err) { console.error(err); }
@@ -126,20 +148,25 @@ const Dashboard = () => {
       const userInfo = JSON.parse(localStorage.getItem('userInfo'));
       const config = { headers: { Authorization: `Bearer ${userInfo.token}` } };
       await axios.delete(`/api/leads/${leadId}`, config);
+      
       setData({ ...data, leads: data.leads.filter(l => l._id !== leadId) });
     } catch (err) { console.error(err); }
   };
 
 
-  /* --- TEAM CRUD --- */
+  // --- team ---
+  
   const handleAddTeamMember = async (e) => {
     e.preventDefault();
     if(!newTeamName.trim() || !newTeamRole.trim()) return;
     setIsAddingTeam(true);
+    
     try {
       const userInfo = JSON.parse(localStorage.getItem('userInfo'));
       const config = { headers: { Authorization: `Bearer ${userInfo.token}` } };
+      
       const response = await axios.post('/api/team', { name: newTeamName, role: newTeamRole }, config);
+      
       setData({ ...data, users: [response.data, ...data.users] });
       setNewTeamName('');
       setNewTeamRole('');
@@ -150,6 +177,7 @@ const Dashboard = () => {
     try {
       const userInfo = JSON.parse(localStorage.getItem('userInfo'));
       const config = { headers: { Authorization: `Bearer ${userInfo.token}` } };
+      
       await axios.delete(`/api/team/${teamId}`, config);
       setData({ ...data, users: data.users.filter(u => u._id !== teamId) });
     } catch (err) { console.error(err); }
