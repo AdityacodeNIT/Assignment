@@ -17,6 +17,16 @@ const Dashboard = () => {
   const [newTaskTitle, setNewTaskTitle] = useState('');
   const [isAddingTask, setIsAddingTask] = useState(false);
 
+  // Lead specific state
+  const [newLeadName, setNewLeadName] = useState('');
+  const [newLeadCompany, setNewLeadCompany] = useState('');
+  const [isAddingLead, setIsAddingLead] = useState(false);
+
+  // Team specific state
+  const [newTeamName, setNewTeamName] = useState('');
+  const [newTeamRole, setNewTeamRole] = useState('');
+  const [isAddingTeam, setIsAddingTeam] = useState(false);
+
   useEffect(() => {
     const fetchDashboardData = async () => {
       try {
@@ -39,57 +49,112 @@ const Dashboard = () => {
     fetchDashboardData();
   }, [logout]);
 
-  // CRUD operation: Create
+
+  /* --- TASKS CRUD --- */
   const handleAddTask = async (e) => {
     e.preventDefault();
     if(!newTaskTitle.trim()) return;
-    
     setIsAddingTask(true);
     try {
       const userInfo = JSON.parse(localStorage.getItem('userInfo'));
       const config = { headers: { Authorization: `Bearer ${userInfo.token}` } };
-      
       const response = await axios.post('/api/tasks', { title: newTaskTitle }, config);
       setData({ ...data, tasks: [response.data, ...data.tasks] });
       setNewTaskTitle('');
-    } catch (err) {
-      console.error(err);
-    } finally {
-      setIsAddingTask(false);
-    }
+    } catch (err) { console.error(err); } finally { setIsAddingTask(false); }
   };
 
-  // CRUD operation: Update
   const handleToggleTask = async (task) => {
+    if(!task._id) {
+      // Toggle local state for static items since they aren't in the database
+      setData({ ...data, tasks: data.tasks.map(t => t.id === task.id ? { ...t, completed: !t.completed } : t) });
+      return;
+    }
     try {
       const userInfo = JSON.parse(localStorage.getItem('userInfo'));
       const config = { headers: { Authorization: `Bearer ${userInfo.token}` } };
-      
       const response = await axios.put(`/api/tasks/${task._id}`, { completed: !task.completed }, config);
-      setData({
-        ...data,
-        tasks: data.tasks.map(t => t._id === task._id ? response.data : t)
-      });
-    } catch (err) {
-      console.error(err);
-    }
+      setData({ ...data, tasks: data.tasks.map(t => t._id === task._id ? response.data : t) });
+    } catch (err) { console.error(err); }
   };
 
-  // CRUD operation: Delete
   const handleDeleteTask = async (taskId) => {
     try {
       const userInfo = JSON.parse(localStorage.getItem('userInfo'));
       const config = { headers: { Authorization: `Bearer ${userInfo.token}` } };
-      
       await axios.delete(`/api/tasks/${taskId}`, config);
-      setData({
-        ...data,
-        tasks: data.tasks.filter(t => t._id !== taskId)
-      });
-    } catch (err) {
-      console.error(err);
-    }
+      setData({ ...data, tasks: data.tasks.filter(t => t._id !== taskId) });
+    } catch (err) { console.error(err); }
   };
+
+
+  /* --- LEADS CRUD --- */
+  const handleAddLead = async (e) => {
+    e.preventDefault();
+    if(!newLeadName.trim() || !newLeadCompany.trim()) return;
+    setIsAddingLead(true);
+    try {
+      const userInfo = JSON.parse(localStorage.getItem('userInfo'));
+      const config = { headers: { Authorization: `Bearer ${userInfo.token}` } };
+      const response = await axios.post('/api/leads', { name: newLeadName, company: newLeadCompany }, config);
+      setData({ ...data, leads: [response.data, ...data.leads] });
+      setNewLeadName('');
+      setNewLeadCompany('');
+    } catch (err) { console.error(err); } finally { setIsAddingLead(false); }
+  };
+
+  const handleCycleLeadStatus = async (lead) => {
+    const statuses = ['New', 'Contacted', 'Qualified'];
+    const nextStatus = statuses[(statuses.indexOf(lead.status) + 1) % statuses.length];
+    
+    if(!lead._id) {
+       // Toggle local state for static items
+       setData({ ...data, leads: data.leads.map(l => l.id === lead.id ? { ...l, status: nextStatus } : l) });
+       return;
+    }
+
+    try {
+      const userInfo = JSON.parse(localStorage.getItem('userInfo'));
+      const config = { headers: { Authorization: `Bearer ${userInfo.token}` } };
+      const response = await axios.put(`/api/leads/${lead._id}`, { status: nextStatus }, config);
+      setData({ ...data, leads: data.leads.map(l => l._id === lead._id ? response.data : l) });
+    } catch (err) { console.error(err); }
+  };
+
+  const handleDeleteLead = async (leadId) => {
+    try {
+      const userInfo = JSON.parse(localStorage.getItem('userInfo'));
+      const config = { headers: { Authorization: `Bearer ${userInfo.token}` } };
+      await axios.delete(`/api/leads/${leadId}`, config);
+      setData({ ...data, leads: data.leads.filter(l => l._id !== leadId) });
+    } catch (err) { console.error(err); }
+  };
+
+
+  /* --- TEAM CRUD --- */
+  const handleAddTeamMember = async (e) => {
+    e.preventDefault();
+    if(!newTeamName.trim() || !newTeamRole.trim()) return;
+    setIsAddingTeam(true);
+    try {
+      const userInfo = JSON.parse(localStorage.getItem('userInfo'));
+      const config = { headers: { Authorization: `Bearer ${userInfo.token}` } };
+      const response = await axios.post('/api/team', { name: newTeamName, role: newTeamRole }, config);
+      setData({ ...data, users: [response.data, ...data.users] });
+      setNewTeamName('');
+      setNewTeamRole('');
+    } catch (err) { console.error(err); } finally { setIsAddingTeam(false); }
+  };
+
+  const handleDeleteTeamMember = async (teamId) => {
+    try {
+      const userInfo = JSON.parse(localStorage.getItem('userInfo'));
+      const config = { headers: { Authorization: `Bearer ${userInfo.token}` } };
+      await axios.delete(`/api/team/${teamId}`, config);
+      setData({ ...data, users: data.users.filter(u => u._id !== teamId) });
+    } catch (err) { console.error(err); }
+  };
+
 
   return (
     <div className="min-h-screen bg-gray-100 dark:bg-slate-900 transition-colors">
@@ -158,30 +223,52 @@ const Dashboard = () => {
         ) : (
           <div className="grid grid-cols-1 gap-6 lg:grid-cols-3">
             
-            {/* Leads Card */}
-            <div className="bg-white dark:bg-slate-800 overflow-hidden shadow rounded-lg border border-gray-200 dark:border-slate-700 transition-colors">
+            {/* Leads Card (CRUD) */}
+            <div className="bg-white dark:bg-slate-800 overflow-hidden shadow rounded-lg border border-gray-200 dark:border-slate-700 flex flex-col h-[500px] transition-colors">
               <div className="px-5 py-4 border-b border-gray-200 dark:border-slate-700 bg-gray-50 dark:bg-slate-800/50 flex justify-between items-center transition-colors">
                 <h3 className="text-lg leading-6 font-medium text-gray-900 dark:text-white">Recent Leads</h3>
                 <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-indigo-100 dark:bg-indigo-900/50 text-indigo-800 dark:text-indigo-300">
                   {data.leads.length}
                 </span>
               </div>
-              <ul className="divide-y divide-gray-200 dark:divide-slate-700">
+              
+              <div className="px-4 py-3 border-b border-gray-100 dark:border-slate-700 bg-gray-50/50 dark:bg-slate-800/30 transition-colors">
+                <form onSubmit={handleAddLead} className="flex flex-col space-y-2">
+                  <div className="flex space-x-2">
+                    <input type="text" placeholder="Name" value={newLeadName} onChange={(e) => setNewLeadName(e.target.value)} className="flex-1 min-w-0 block w-full px-3 py-1.5 rounded-md text-sm border-gray-300 dark:border-slate-600 bg-white dark:bg-slate-700 text-gray-900 dark:text-white focus:ring-indigo-500 dark:focus:ring-indigo-400 focus:border-indigo-500 border transition-colors" />
+                    <input type="text" placeholder="Company" value={newLeadCompany} onChange={(e) => setNewLeadCompany(e.target.value)} className="flex-1 min-w-0 block w-full px-3 py-1.5 rounded-md text-sm border-gray-300 dark:border-slate-600 bg-white dark:bg-slate-700 text-gray-900 dark:text-white focus:ring-indigo-500 dark:focus:ring-indigo-400 focus:border-indigo-500 border transition-colors" />
+                  </div>
+                  <button type="submit" disabled={isAddingLead || !newLeadName.trim() || !newLeadCompany.trim()} className="w-full inline-flex justify-center items-center px-3 py-1.5 border border-transparent text-sm leading-4 font-medium rounded-md shadow-sm text-white bg-indigo-600 hover:bg-indigo-700 dark:bg-indigo-500 dark:hover:bg-indigo-600 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 disabled:opacity-50 transition-colors">
+                    Add Lead
+                  </button>
+                </form>
+              </div>
+
+              <ul className="divide-y divide-gray-200 dark:divide-slate-700 flex-1 overflow-y-auto">
                 {data.leads.map((lead) => (
-                  <li key={lead.id} className="px-5 py-4 hover:bg-gray-50 dark:hover:bg-slate-700/50 transition-colors">
+                  <li key={lead._id || lead.id} className="px-5 py-4 hover:bg-gray-50 dark:hover:bg-slate-700/50 transition-colors group">
                     <div className="flex items-center justify-between">
                       <div>
-                        <p className="text-sm font-medium text-gray-900 dark:text-white">{lead.name}</p>
+                        <p className="text-sm font-medium text-gray-900 dark:text-white flex items-center">
+                          {lead.name}
+                        </p>
                         <p className="text-sm text-gray-500 dark:text-gray-400">{lead.company}</p>
                       </div>
-                      <div>
-                        <span className={`inline-flex px-2 py-1 text-xs font-semibold rounded-full ${
-                          lead.status === 'New' ? 'bg-green-100 dark:bg-green-900/40 text-green-800 dark:text-green-300' : 
-                          lead.status === 'Contacted' ? 'bg-yellow-100 dark:bg-yellow-900/40 text-yellow-800 dark:text-yellow-300' : 
-                          'bg-blue-100 dark:bg-blue-900/40 text-blue-800 dark:text-blue-300'
-                        }`}>
+                      <div className="flex items-center space-x-2">
+                        <span 
+                          onClick={() => handleCycleLeadStatus(lead)}
+                          className={`inline-flex px-2 py-1 text-xs font-semibold rounded-full cursor-pointer hover:ring-2 hover:ring-offset-1 dark:hover:ring-offset-slate-800 transition-all ${
+                            lead.status === 'New' ? 'bg-green-100 dark:bg-green-900/40 text-green-800 dark:text-green-300' : 
+                            lead.status === 'Contacted' ? 'bg-yellow-100 dark:bg-yellow-900/40 text-yellow-800 dark:text-yellow-300' : 
+                            'bg-blue-100 dark:bg-blue-900/40 text-blue-800 dark:text-blue-300'
+                          }`}>
                           {lead.status}
                         </span>
+                        {lead._id && (
+                          <button onClick={() => handleDeleteLead(lead._id)} className="text-gray-400 dark:text-gray-500 hover:text-red-500 dark:hover:text-red-400 opacity-0 group-hover:opacity-100 transition-opacity" title="Delete lead">
+                            <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" /></svg>
+                          </button>
+                        )}
                       </div>
                     </div>
                   </li>
@@ -190,7 +277,7 @@ const Dashboard = () => {
             </div>
 
             {/* Dynamic Tasks Card (CRUD) */}
-            <div className="bg-white dark:bg-slate-800 overflow-hidden shadow rounded-lg border border-gray-200 dark:border-slate-700 flex flex-col h-full transition-colors">
+            <div className="bg-white dark:bg-slate-800 overflow-hidden shadow rounded-lg border border-gray-200 dark:border-slate-700 flex flex-col h-[500px] transition-colors">
               <div className="px-5 py-4 border-b border-gray-200 dark:border-slate-700 bg-gray-50 dark:bg-slate-800/50 flex justify-between items-center transition-colors">
                 <h3 className="text-lg leading-6 font-medium text-gray-900 dark:text-white">Tasks</h3>
                 <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-red-100 dark:bg-red-900/50 text-red-800 dark:text-red-300">
@@ -198,7 +285,6 @@ const Dashboard = () => {
                 </span>
               </div>
               
-              {/* Add Task Form (Create) */}
               <div className="px-4 py-3 border-b border-gray-100 dark:border-slate-700 bg-gray-50/50 dark:bg-slate-800/30 transition-colors">
                 <form onSubmit={handleAddTask} className="flex space-x-2">
                   <input
@@ -206,20 +292,19 @@ const Dashboard = () => {
                     placeholder="Add a new task..."
                     value={newTaskTitle}
                     onChange={(e) => setNewTaskTitle(e.target.value)}
-                    className="flex-1 min-w-0 block w-full px-3 py-2 rounded-md text-sm border-gray-300 dark:border-slate-600 bg-white dark:bg-slate-700 text-gray-900 dark:text-white focus:ring-indigo-500 dark:focus:ring-indigo-400 focus:border-indigo-500 dark:placeholder-gray-400 border transition-colors"
+                    className="flex-1 min-w-0 block w-full px-3 py-1.5 rounded-md text-sm border-gray-300 dark:border-slate-600 bg-white dark:bg-slate-700 text-gray-900 dark:text-white focus:ring-indigo-500 dark:focus:ring-indigo-400 focus:border-indigo-500 dark:placeholder-gray-400 border transition-colors"
                   />
                   <button
                     type="submit"
                     disabled={isAddingTask || !newTaskTitle.trim()}
-                    className="inline-flex items-center px-3 py-2 border border-transparent text-sm leading-4 font-medium rounded-md shadow-sm text-white bg-indigo-600 hover:bg-indigo-700 dark:bg-indigo-500 dark:hover:bg-indigo-600 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 disabled:opacity-50 transition-colors"
+                    className="inline-flex items-center px-3 py-1.5 border border-transparent text-sm leading-4 font-medium rounded-md shadow-sm text-white bg-indigo-600 hover:bg-indigo-700 dark:bg-indigo-500 dark:hover:bg-indigo-600 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 disabled:opacity-50 transition-colors"
                   >
                     Add
                   </button>
                 </form>
               </div>
 
-              {/* Task List (Read, Update, Delete) */}
-              <ul className="divide-y divide-gray-200 dark:divide-slate-700 flex-1 overflow-y-auto max-h-80">
+              <ul className="divide-y divide-gray-200 dark:divide-slate-700 flex-1 overflow-y-auto">
                 {data.tasks.length === 0 ? (
                   <div className="px-5 py-4 text-sm text-gray-500 dark:text-gray-400 text-center">No tasks yet. Add one above!</div>
                 ) : (
@@ -230,25 +315,25 @@ const Dashboard = () => {
                           type="checkbox" 
                           checked={task.completed}
                           onChange={() => handleToggleTask(task)}
-                          className="h-4 w-4 text-indigo-600 dark:text-indigo-400 focus:ring-indigo-500 dark:focus:ring-indigo-400 border-gray-300 dark:border-slate-600 dark:bg-slate-700 rounded cursor-pointer" 
+                          className="h-4 w-4 text-indigo-600 dark:text-indigo-400 focus:ring-indigo-500 dark:focus:ring-indigo-400 border-gray-300 dark:border-slate-600 dark:bg-slate-700 rounded cursor-pointer transition-colors" 
                         />
                       </div>
                       <div className="ml-3 flex-1">
-                        <p className={`text-sm font-medium transition-colors ${task.completed ? 'text-gray-400 dark:text-gray-500 line-through' : 'text-gray-900 dark:text-gray-200'}`}>
+                        <p className={`text-sm font-medium flex items-center transition-colors ${task.completed ? 'text-gray-400 dark:text-gray-500 line-through' : 'text-gray-900 dark:text-gray-200'}`}>
                           {task.title}
                         </p>
                         <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">Due: {task.dueDate}</p>
                       </div>
                       <div className="ml-2 flex-shrink-0 opacity-0 group-hover:opacity-100 transition-opacity">
-                        <button 
-                          onClick={() => handleDeleteTask(task._id)}
-                          className="text-gray-400 dark:text-gray-500 hover:text-red-500 dark:hover:text-red-400 p-1 rounded-full hover:bg-red-50 dark:hover:bg-red-900/30 transition-colors"
-                          title="Delete task"
-                        >
-                          <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
-                          </svg>
-                        </button>
+                        {task._id && (
+                          <button 
+                            onClick={() => handleDeleteTask(task._id)}
+                            className="text-gray-400 dark:text-gray-500 hover:text-red-500 dark:hover:text-red-400 p-1 rounded-full hover:bg-red-50 dark:hover:bg-red-900/30 transition-colors"
+                            title="Delete task"
+                          >
+                            <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" /></svg>
+                          </button>
+                        )}
                       </div>
                     </li>
                   ))
@@ -256,24 +341,46 @@ const Dashboard = () => {
               </ul>
             </div>
 
-            {/* Users Card */}
-            <div className="bg-white dark:bg-slate-800 overflow-hidden shadow rounded-lg border border-gray-200 dark:border-slate-700 transition-colors">
+            {/* Users Card (CRUD) */}
+            <div className="bg-white dark:bg-slate-800 overflow-hidden shadow rounded-lg border border-gray-200 dark:border-slate-700 flex flex-col h-[500px] transition-colors">
               <div className="px-5 py-4 border-b border-gray-200 dark:border-slate-700 bg-gray-50 dark:bg-slate-800/50 flex justify-between items-center transition-colors">
                 <h3 className="text-lg leading-6 font-medium text-gray-900 dark:text-white">Team Members</h3>
                 <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-gray-100 dark:bg-slate-700 text-gray-800 dark:text-gray-300">
                   {data.users.length}
                 </span>
               </div>
-              <ul className="divide-y divide-gray-200 dark:divide-slate-700">
+              
+              <div className="px-4 py-3 border-b border-gray-100 dark:border-slate-700 bg-gray-50/50 dark:bg-slate-800/30 transition-colors">
+                <form onSubmit={handleAddTeamMember} className="flex flex-col space-y-2">
+                  <div className="flex space-x-2">
+                    <input type="text" placeholder="Name" value={newTeamName} onChange={(e) => setNewTeamName(e.target.value)} className="flex-1 min-w-0 block w-full px-3 py-1.5 rounded-md text-sm border-gray-300 dark:border-slate-600 bg-white dark:bg-slate-700 text-gray-900 dark:text-white focus:ring-indigo-500 dark:focus:ring-indigo-400 focus:border-indigo-500 border transition-colors" />
+                    <input type="text" placeholder="Role/Title" value={newTeamRole} onChange={(e) => setNewTeamRole(e.target.value)} className="flex-1 min-w-0 block w-full px-3 py-1.5 rounded-md text-sm border-gray-300 dark:border-slate-600 bg-white dark:bg-slate-700 text-gray-900 dark:text-white focus:ring-indigo-500 dark:focus:ring-indigo-400 focus:border-indigo-500 border transition-colors" />
+                  </div>
+                  <button type="submit" disabled={isAddingTeam || !newTeamName.trim() || !newTeamRole.trim()} className="w-full inline-flex justify-center items-center px-3 py-1.5 border border-transparent text-sm leading-4 font-medium rounded-md shadow-sm text-white bg-indigo-600 hover:bg-indigo-700 dark:bg-indigo-500 dark:hover:bg-indigo-600 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 disabled:opacity-50 transition-colors">
+                    Add Member
+                  </button>
+                </form>
+              </div>
+
+              <ul className="divide-y divide-gray-200 dark:divide-slate-700 flex-1 overflow-y-auto">
                 {data.users.map((member) => (
-                  <li key={member.id} className="px-5 py-4 hover:bg-gray-50 dark:hover:bg-slate-700/50 transition-colors flex items-center">
-                    <div className="h-10 w-10 rounded-full bg-gradient-to-tr from-indigo-500 to-purple-500 flex items-center justify-center text-white font-bold text-sm">
-                      {member.name.charAt(0)}
+                  <li key={member._id || member.id} className="px-5 py-4 hover:bg-gray-50 dark:hover:bg-slate-700/50 transition-colors flex items-center justify-between group">
+                    <div className="flex items-center">
+                      <div className="h-10 w-10 rounded-full bg-gradient-to-tr from-indigo-500 to-purple-500 flex items-center justify-center text-white font-bold text-sm">
+                        {member.name.charAt(0)}
+                      </div>
+                      <div className="ml-4">
+                        <p className="text-sm font-medium text-gray-900 dark:text-white flex items-center">
+                          {member.name}
+                        </p>
+                        <p className="text-sm text-gray-500 dark:text-gray-400">{member.role}</p>
+                      </div>
                     </div>
-                    <div className="ml-4">
-                      <p className="text-sm font-medium text-gray-900 dark:text-white">{member.name}</p>
-                      <p className="text-sm text-gray-500 dark:text-gray-400">{member.role}</p>
-                    </div>
+                    {member._id && (
+                      <button onClick={() => handleDeleteTeamMember(member._id)} className="text-gray-400 dark:text-gray-500 hover:text-red-500 dark:hover:text-red-400 opacity-0 group-hover:opacity-100 transition-opacity" title="Remove member">
+                        <svg className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" /></svg>
+                      </button>
+                    )}
                   </li>
                 ))}
               </ul>

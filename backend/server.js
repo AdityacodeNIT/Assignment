@@ -19,10 +19,14 @@ mongoose.connect(process.env.MONGO_URI || 'mongodb://127.0.0.1:27017/assignment'
 const authRoutes = require('./routes/auth');
 const dashboardRoutes = require('./routes/dashboard');
 const taskRoutes = require('./routes/tasks');
+const leadRoutes = require('./routes/leads');
+const teamRoutes = require('./routes/team');
 
 app.use('/api/auth', authRoutes);
 app.use('/api/dashboard', dashboardRoutes);
 app.use('/api/tasks', taskRoutes);
+app.use('/api/leads', leadRoutes);
+app.use('/api/team', teamRoutes);
 
 // Basic Route
 app.get('/', (req, res) => {
